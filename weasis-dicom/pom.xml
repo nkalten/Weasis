@@ -26,6 +26,7 @@
     <module>weasis-dicom-qr</module>
     <module>weasis-dicom-rt</module>
     <module>weasis-dicom-isowriter</module>
+    <module>weasis-dicom-totalseg</module>
     <module>weasis-dicom-3d</module>
   </modules>
 </project>

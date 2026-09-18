@@ -1,0 +1,66 @@
+/*
+ * Copyright (c) 2026 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.dicom.totalseg;
+
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Tasks offered by the server, with the ROIs each one segments. {@code GET /tasks} is the source of
+ * truth; the built-in list only keeps the plugin usable while the server is unreachable, and
+ * carries no ROI.
+ */
+public class TaskCatalog {
+
+  public static final String DEFAULT_CT_TASK = "total"; // NON-NLS
+  public static final String DEFAULT_MR_TASK = "total_mr"; // NON-NLS
+
+  // @formatter:off
+  private static final List<String> BUILT_IN_TASKS =
+      List.of(
+          "total", "total_mr", "total_v3", "total_v1", "total_highres_test", // NON-NLS
+          "body", "body_mr", "lung_vessels", "lung_nodules", "covid", // NON-NLS
+          "pleural_pericard_effusion", "liver_vessels", "liver_segments", "liver_segments_mr", // NON-NLS
+          "liver_lesions", "liver_lesions_mr", "kidney_cysts", "renal_arteries", // NON-NLS
+          "coronary_arteries", "heartchambers_highres", "ventricle_parts", "aortic_sinuses", // NON-NLS
+          "aorta_annulus", "aortic_dissection", "pulmonary_artery_landmarks", "brain_structures", // NON-NLS
+          "brain_aneurysm", "cerebral_bleed", "head_glands_cavities", "head_muscles", // NON-NLS
+          "headneck_bones_vessels", "headneck_muscles", "craniofacial_structures", "teeth", // NON-NLS
+          "face", "face_mr", "oculomotor_muscles", "vertebrae_mr", "vertebrae_body", // NON-NLS
+          "vertebrae_pp", "vertebrae_pp_refined", "appendicular_bones", "appendicular_bones_mr", // NON-NLS
+          "thigh_shoulder_muscles", "thigh_shoulder_muscles_mr", "abdominal_muscles", // NON-NLS
+          "tissue_types", "tissue_types_mr", "tissue_4_types", "breasts", "trunk_cavities", // NON-NLS
+          "hip_implant"); // NON-NLS
+  // @formatter:on
+
+  private Map<String, List<String>> tasks = Map.of();
+
+  /** Keeps the server order, which groups related tasks together. */
+  public void update(Map<String, List<String>> serverTasks) {
+    this.tasks =
+        serverTasks == null
+            ? Map.of()
+            : Collections.unmodifiableMap(new LinkedHashMap<>(serverTasks));
+  }
+
+  public boolean isLoaded() {
+    return !tasks.isEmpty();
+  }
+
+  public List<String> taskNames() {
+    return isLoaded() ? List.copyOf(tasks.keySet()) : BUILT_IN_TASKS;
+  }
+
+  public List<String> rois(String task) {
+    return tasks.getOrDefault(task, List.of());
+  }
+}

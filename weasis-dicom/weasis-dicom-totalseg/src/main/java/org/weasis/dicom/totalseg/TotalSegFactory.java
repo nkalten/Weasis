@@ -1,0 +1,73 @@
+/*
+ * Copyright (c) 2026 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.dicom.totalseg;
+
+import java.util.Hashtable;
+import java.util.Properties;
+import org.osgi.service.component.ComponentContext;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Deactivate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.weasis.core.api.gui.util.GuiUtils;
+import org.weasis.core.api.service.BundlePreferences;
+import org.weasis.core.util.PropertiesUtil;
+import org.weasis.dicom.explorer.DicomModel;
+import org.weasis.dicom.explorer.exp.CheckTreeModel;
+import org.weasis.dicom.explorer.exp.DicomExportFactory;
+import org.weasis.dicom.explorer.exp.ExportDicom;
+
+@Component(service = DicomExportFactory.class)
+public class TotalSegFactory implements DicomExportFactory {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(TotalSegFactory.class);
+
+  private static final String PROPERTIES_FILE = "totalseg.properties"; // NON-NLS
+
+  /** Last task, output type and fast flag, so a repeated segmentation needs no setup. */
+  static final Properties PERSISTENCE = new Properties();
+
+  @Override
+  public ExportDicom createDicomExportPage(Hashtable<String, Object> properties) {
+    if (properties != null
+        && GuiUtils.getUICore()
+            .getSystemPreferences()
+            .getBooleanProperty("weasis.export.dicom.totalsegmentator", true)) {
+      DicomModel dicomModel = (DicomModel) properties.get(DicomModel.class.getName());
+      CheckTreeModel treeModel = (CheckTreeModel) properties.get(CheckTreeModel.class.getName());
+      if (dicomModel != null && treeModel != null) {
+        return new TotalSegView(dicomModel, treeModel).initGUI();
+      }
+    }
+    return null;
+  }
+
+  // ================================================================================
+  // OSGI service implementation
+  // ================================================================================
+
+  @Activate
+  protected void activate(ComponentContext context) {
+    LOGGER.info("TotalSegmentator plugin is activated");
+    PropertiesUtil.loadProperties(
+        BundlePreferences.getFileInDataFolder(context.getBundleContext(), PROPERTIES_FILE),
+        PERSISTENCE);
+  }
+
+  @Deactivate
+  protected void deactivate(ComponentContext context) {
+    LOGGER.info("TotalSegmentator plugin is deactivated");
+    PropertiesUtil.storeProperties(
+        BundlePreferences.getFileInDataFolder(context.getBundleContext(), PROPERTIES_FILE),
+        PERSISTENCE,
+        null);
+  }
+}

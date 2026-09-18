@@ -1,0 +1,585 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "TotalSegmentator API",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/tasks": {
+      "get": {
+        "summary": "Get list of available tasks and their ROIs",
+        "description": "Returns all available tasks and the list of organs (ROIs) they segment.",
+        "operationId": "get_tasks_tasks_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "type": "object",
+                  "title": "Response Get Tasks Tasks Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/segment": {
+      "post": {
+        "summary": "Submit a CT or MR DICOM series for segmentation",
+        "description": "Uploads a ZIP file containing DICOM images and submits it for segmentation.\nReturns a task ID that can be used to check status and download results.",
+        "operationId": "segment_dicom_segment_post",
+        "parameters": [
+          {
+            "name": "output_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "dicom_seg",
+                "dicom_rtstruct"
+              ],
+              "default": "dicom_seg",
+              "title": "Output Type"
+            }
+          },
+          {
+            "name": "task",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "description": "Task name",
+              "enum": [
+                "total_v1",
+                "total",
+                "total_mr",
+                "total_highres_test",
+                "lung_vessels",
+                "lung_vessels_LEGACY",
+                "oculomotor_muscles",
+                "covid",
+                "cerebral_bleed",
+                "hip_implant",
+                "coronary_arteries",
+                "coronary_arteries_LEGACY",
+                "body",
+                "body_mr",
+                "vertebrae_mr",
+                "pleural_pericard_effusion",
+                "liver_vessels",
+                "vertebrae_body",
+                "vertebrae_pp",
+                "heartchambers_highres",
+                "appendicular_bones",
+                "appendicular_bones_mr",
+                "appendicular_bones_auxiliary",
+                "tissue_types",
+                "tissue_types_mr",
+                "tissue_4_types",
+                "face",
+                "face_mr",
+                "face_mr_auxiliary",
+                "brain_structures",
+                "head_glands_cavities",
+                "headneck_bones_vessels",
+                "head_muscles",
+                "headneck_muscles",
+                "thigh_shoulder_muscles",
+                "thigh_shoulder_muscles_mr",
+                "lung_nodules",
+                "kidney_cysts",
+                "kidney_cysts_auxiliary",
+                "breasts",
+                "ventricle_parts",
+                "aortic_sinuses",
+                "renal_arteries",
+                "renal_arteries_auxiliary",
+                "aorta_annulus",
+                "aortic_dissection",
+                "pulmonary_artery_landmarks",
+                "liver_segments",
+                "liver_segments_mr",
+                "liver_lesions",
+                "liver_lesions_mr",
+                "craniofacial_structures",
+                "abdominal_muscles",
+                "teeth",
+                "trunk_cavities",
+                "brain_aneurysm",
+                "test",
+                "total_v3",
+                "vertebrae_pp_refined"
+              ],
+              "default": "total",
+              "title": "Task"
+            },
+            "description": "Task name"
+          },
+          {
+            "name": "roi_subset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Subset of ROIs to segment (optional). Available ROIs depend on the selected task. Call GET /tasks to see valid ROIs for each task. If not specified, all ROIs for the task will be segmented.",
+              "title": "Roi Subset"
+            },
+            "description": "Subset of ROIs to segment (optional). Available ROIs depend on the selected task. Call GET /tasks to see valid ROIs for each task. If not specified, all ROIs for the task will be segmented."
+          },
+          {
+            "name": "fast",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Run in fast mode (lower resolution)",
+              "default": false,
+              "title": "Fast"
+            },
+            "description": "Run in fast mode (lower resolution)"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_segment_dicom_segment_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SegmentationSubmitResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/status/{task_id}": {
+      "get": {
+        "summary": "Check the status of a segmentation task",
+        "description": "Returns the current status of a segmentation task.\n\nPossible states:\n- PENDING: Task is waiting to be executed\n- PROCESSING: Task is currently running\n- SUCCESS: Task completed successfully\n- FAILURE: Task failed with an error",
+        "operationId": "get_task_status_status__task_id__get",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Task Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskStatusResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/result/{task_id}": {
+      "get": {
+        "summary": "Download the segmentation result",
+        "description": "Downloads the segmentation result file for a completed task.\nReturns 404 if the task is not complete or the file doesn't exist.",
+        "operationId": "get_task_result_result__task_id__get",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Task Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete a task result",
+        "description": "Manually delete the result file for a completed task.",
+        "operationId": "delete_task_result_result__task_id__delete",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Task Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "summary": "Health check",
+        "description": "Check if the API and Celery workers are running.",
+        "operationId": "health_check_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service unhealthy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Body_segment_dicom_segment_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "File",
+            "description": "ZIP file containing DICOM series"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_segment_dicom_segment_post"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "HealthResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "Overall service health."
+          },
+          "broker": {
+            "type": "string",
+            "title": "Broker",
+            "description": "Message broker backing Celery."
+          },
+          "celery": {
+            "type": "string",
+            "title": "Celery",
+            "description": "Celery connectivity status."
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error",
+            "description": "Error detail, present only when the service is unhealthy."
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "broker",
+          "celery"
+        ],
+        "title": "HealthResponse",
+        "examples": [
+          {
+            "broker": "valkey",
+            "celery": "connected",
+            "status": "healthy"
+          },
+          {
+            "broker": "valkey",
+            "celery": "disconnected",
+            "error": "Connection refused",
+            "status": "unhealthy"
+          }
+        ]
+      },
+      "MessageResponse": {
+        "properties": {
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "Human-readable result of the operation."
+          }
+        },
+        "type": "object",
+        "required": [
+          "message"
+        ],
+        "title": "MessageResponse",
+        "examples": [
+          {
+            "message": "Result file deleted successfully"
+          }
+        ]
+      },
+      "SegmentationSubmitResponse": {
+        "properties": {
+          "task_id": {
+            "type": "string",
+            "title": "Task Id",
+            "description": "Celery task ID used to poll status and download the result."
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "Submission status of the segmentation request.",
+            "default": "submitted"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "Human-readable confirmation message."
+          }
+        },
+        "type": "object",
+        "required": [
+          "task_id",
+          "message"
+        ],
+        "title": "SegmentationSubmitResponse",
+        "examples": [
+          {
+            "message": "Segmentation task has been queued. Use the task_id to check status.",
+            "status": "submitted",
+            "task_id": "3f2b1c9a-8d4e-4f0a-9b2c-1e2d3f4a5b6c"
+          }
+        ]
+      },
+      "TaskStatusResponse": {
+        "properties": {
+          "task_id": {
+            "type": "string",
+            "title": "Task Id",
+            "description": "Celery task ID."
+          },
+          "state": {
+            "type": "string",
+            "title": "State",
+            "description": "Celery task state (PENDING, PROCESSING, SUCCESS, FAILURE, ...)."
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "Human-readable status detail for the current state."
+          },
+          "result_filename": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Result Filename",
+            "description": "Result file name, present only when the state is SUCCESS."
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error",
+            "description": "Error detail, present only when the state is FAILURE."
+          }
+        },
+        "type": "object",
+        "required": [
+          "task_id",
+          "state",
+          "status"
+        ],
+        "title": "TaskStatusResponse",
+        "examples": [
+          {
+            "state": "PROCESSING",
+            "status": "Running segmentation on 240 files...",
+            "task_id": "3f2b1c9a-8d4e-4f0a-9b2c-1e2d3f4a5b6c"
+          },
+          {
+            "result_filename": "segmentation_3f2b1c9a.dcm",
+            "state": "SUCCESS",
+            "status": "Segmentation completed successfully",
+            "task_id": "3f2b1c9a-8d4e-4f0a-9b2c-1e2d3f4a5b6c"
+          },
+          {
+            "error": "Segmentation failed: no DICOM files found",
+            "state": "FAILURE",
+            "status": "Task failed",
+            "task_id": "3f2b1c9a-8d4e-4f0a-9b2c-1e2d3f4a5b6c"
+          }
+        ]
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}

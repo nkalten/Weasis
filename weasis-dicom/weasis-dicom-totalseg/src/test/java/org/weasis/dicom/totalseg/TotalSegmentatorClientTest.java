@@ -61,15 +61,29 @@ class TotalSegmentatorClientTest {
   }
 
   @Test
-  void tasksReturnsEveryTaskWithItsRois() throws IOException {
-    respond("/tasks", 200, "{\"total\":[\"liver\",\"spleen\"],\"body\":[]}");
+  void tasksReturnsEveryTaskWithItsRoisAndFastSupport() throws IOException {
+    respond(
+        "/tasks",
+        200,
+        """
+        {"total": {"rois": ["liver", "spleen"], "fast": true},
+         "teeth": {"rois": [], "fast": false}}""");
 
-    Map<String, List<String>> tasks = client.tasks();
+    Map<String, TaskInfo> tasks = client.tasks();
 
     assertAll(
         () -> assertEquals(2, tasks.size()),
-        () -> assertEquals(List.of("liver", "spleen"), tasks.get("total")),
-        () -> assertEquals(List.of(), tasks.get("body")));
+        () -> assertEquals(List.of("liver", "spleen"), tasks.get("total").rois()),
+        () -> assertTrue(tasks.get("total").fast()),
+        () -> assertEquals(List.of(), tasks.get("teeth").rois()),
+        () -> assertFalse(tasks.get("teeth").fast()));
+  }
+
+  @Test
+  void tasksIgnoresFieldsAddedByANewerApi() throws IOException {
+    respond("/tasks", 200, "{\"total\": {\"rois\": [], \"fast\": true, \"fastest\": true}}");
+
+    assertTrue(client.tasks().get("total").fast());
   }
 
   @Test

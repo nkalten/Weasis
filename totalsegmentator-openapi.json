@@ -7,8 +7,8 @@
   "paths": {
     "/tasks": {
       "get": {
-        "summary": "Get list of available tasks and their ROIs",
-        "description": "Returns all available tasks and the list of organs (ROIs) they segment.",
+        "summary": "Get list of available tasks, their ROIs and fast mode support",
+        "description": "Returns all available tasks, the ROIs they segment and whether they\nsupport fast mode.",
         "operationId": "get_tasks_tasks_get",
         "responses": {
           "200": {
@@ -17,10 +17,7 @@
               "application/json": {
                 "schema": {
                   "additionalProperties": {
-                    "items": {
-                      "type": "string"
-                    },
-                    "type": "array"
+                    "$ref": "#/components/schemas/TaskInfo"
                   },
                   "type": "object",
                   "title": "Response Get Tasks Tasks Get"
@@ -50,6 +47,22 @@
               "default": "dicom_seg",
               "title": "Output Type"
             }
+          },
+          {
+            "name": "seg_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "description": "DICOM SEG encoding, ignored when output_type is dicom_rtstruct. 'labelmap' is far smaller and faster to read but requires a viewer supporting DICOM Sup. 243; it falls back to 'binary' if it cannot be written.",
+              "enum": [
+                "labelmap",
+                "binary"
+              ],
+              "default": "labelmap",
+              "title": "Seg Type"
+            },
+            "description": "DICOM SEG encoding, ignored when output_type is dicom_rtstruct. 'labelmap' is far smaller and faster to read but requires a viewer supporting DICOM Sup. 243; it falls back to 'binary' if it cannot be written."
           },
           {
             "name": "task",
@@ -151,11 +164,11 @@
             "required": false,
             "schema": {
               "type": "boolean",
-              "description": "Run in fast mode (lower resolution)",
+              "description": "Run in fast mode (lower resolution). Only for tasks supporting it, see GET /tasks.",
               "default": false,
               "title": "Fast"
             },
-            "description": "Run in fast mode (lower resolution)"
+            "description": "Run in fast mode (lower resolution). Only for tasks supporting it, see GET /tasks."
           }
         ],
         "requestBody": {
@@ -175,6 +188,45 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/SegmentationSubmitResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dicom/params": {
+      "post": {
+        "summary": "Register segmentation parameters for series sent by DICOM",
+        "description": "Stores the segmentation parameters of series that are about to be sent to the\nDICOM listener by C-STORE, which cannot carry them. Call it before sending:\nthe listener uses them once, when the series is complete, and falls back to\nits configuration when none were registered.",
+        "operationId": "register_dicom_params_dicom_params_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DicomSegmentationParams"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
                 }
               }
             }
@@ -355,6 +407,86 @@
         ],
         "title": "Body_segment_dicom_segment_post"
       },
+      "DicomSegmentationParams": {
+        "properties": {
+          "series_uids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Series Uids",
+            "description": "SeriesInstanceUID of each series about to be sent by C-STORE."
+          },
+          "output_type": {
+            "type": "string",
+            "enum": [
+              "dicom_seg",
+              "dicom_rtstruct"
+            ],
+            "title": "Output Type",
+            "description": "DICOM object built from the masks.",
+            "default": "dicom_seg"
+          },
+          "seg_type": {
+            "type": "string",
+            "enum": [
+              "labelmap",
+              "binary"
+            ],
+            "title": "Seg Type",
+            "description": "DICOM SEG encoding, ignored when output_type is dicom_rtstruct. 'labelmap' is far smaller and faster to read but requires a viewer supporting DICOM Sup. 243; it falls back to 'binary' if it cannot be written.",
+            "default": "labelmap"
+          },
+          "task": {
+            "type": "string",
+            "title": "Task",
+            "description": "Task name (see GET /tasks).",
+            "default": "total"
+          },
+          "roi_subset": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Roi Subset",
+            "description": "Subset of ROIs to segment; all ROIs of the task if omitted."
+          },
+          "fast": {
+            "type": "boolean",
+            "title": "Fast",
+            "description": "Run in fast mode. Only for tasks supporting it (see GET /tasks).",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "series_uids"
+        ],
+        "title": "DicomSegmentationParams",
+        "examples": [
+          {
+            "fast": true,
+            "output_type": "dicom_seg",
+            "roi_subset": [
+              "liver",
+              "spleen"
+            ],
+            "seg_type": "labelmap",
+            "series_uids": [
+              "1.2.840.113619.2.55.3.604688119.971.1"
+            ],
+            "task": "total"
+          }
+        ]
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -471,6 +603,38 @@
           }
         ]
       },
+      "TaskInfo": {
+        "properties": {
+          "rois": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Rois",
+            "description": "ROIs segmented by the task."
+          },
+          "fast": {
+            "type": "boolean",
+            "title": "Fast",
+            "description": "Whether the task supports fast mode."
+          }
+        },
+        "type": "object",
+        "required": [
+          "rois",
+          "fast"
+        ],
+        "title": "TaskInfo",
+        "examples": [
+          {
+            "fast": true,
+            "rois": [
+              "spleen",
+              "liver"
+            ]
+          }
+        ]
+      },
       "TaskStatusResponse": {
         "properties": {
           "task_id": {
@@ -500,6 +664,18 @@
             "title": "Result Filename",
             "description": "Result file name, present only when the state is SUCCESS."
           },
+          "seg_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seg Type",
+            "description": "DICOM SEG encoding actually written. Present only when the state is SUCCESS; differs from the requested one after a fallback."
+          },
           "error": {
             "anyOf": [
               {
@@ -528,6 +704,7 @@
           },
           {
             "result_filename": "segmentation_3f2b1c9a.dcm",
+            "seg_type": "labelmap",
             "state": "SUCCESS",
             "status": "Segmentation completed successfully",
             "task_id": "3f2b1c9a-8d4e-4f0a-9b2c-1e2d3f4a5b6c"

@@ -10,8 +10,10 @@
 package org.weasis.dicom.totalseg;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -59,7 +61,10 @@ public class TotalSegmentatorClient {
   private final Map<String, String> headers;
   private final Duration requestTimeout;
   private final HttpClient httpClient;
-  private final ObjectMapper mapper = new ObjectMapper();
+
+  // A newer API may add fields to the responses without breaking an older plugin.
+  private final ObjectMapper mapper =
+      JsonMapper.builder().disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES).build();
 
   public TotalSegmentatorClient(
       String baseUrl, Map<String, String> headers, Duration connectTimeout, Duration requestTimeout)
@@ -107,11 +112,11 @@ public class TotalSegmentatorClient {
     return status == null ? Messages.getString("unknown") : status;
   }
 
-  /** Available tasks with the ROIs each one segments. */
-  public Map<String, List<String>> tasks() throws IOException {
+  /** Available tasks with the ROIs each one segments and its support of the fast mode. */
+  public Map<String, TaskInfo> tasks() throws IOException {
     HttpResponse<String> response = send(request("/tasks").GET(), BodyHandlers.ofString());
     checkSuccess(response, response.body());
-    return mapper.readValue(response.body(), new TypeReference<Map<String, List<String>>>() {});
+    return mapper.readValue(response.body(), new TypeReference<Map<String, TaskInfo>>() {});
   }
 
   /**

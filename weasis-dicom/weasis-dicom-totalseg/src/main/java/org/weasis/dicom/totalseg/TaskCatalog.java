@@ -13,16 +13,24 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
- * Tasks offered by the server, with the ROIs each one segments. {@code GET /tasks} is the source of
- * truth; the built-in list only keeps the plugin usable while the server is unreachable, and
- * carries no ROI.
+ * Tasks offered by the server, with the ROIs each one segments and its support of the fast mode.
+ * {@code GET /tasks} is the source of truth; the built-in list only keeps the plugin usable while
+ * the server is unreachable, and carries no ROI.
  */
 public class TaskCatalog {
 
   public static final String DEFAULT_CT_TASK = "total"; // NON-NLS
   public static final String DEFAULT_MR_TASK = "total_mr"; // NON-NLS
+
+  /**
+   * Tasks whose fast mode lowers the resolution. An allowlist rather than the list of the rejected
+   * tasks: an unknown task then only loses the option instead of failing on the server.
+   */
+  private static final Set<String> BUILT_IN_FAST_TASKS =
+      Set.of("total", "total_v3", "total_mr", "body", "body_mr"); // NON-NLS
 
   // @formatter:off
   private static final List<String> BUILT_IN_TASKS =
@@ -42,10 +50,10 @@ public class TaskCatalog {
           "hip_implant"); // NON-NLS
   // @formatter:on
 
-  private Map<String, List<String>> tasks = Map.of();
+  private Map<String, TaskInfo> tasks = Map.of();
 
   /** Keeps the server order, which groups related tasks together. */
-  public void update(Map<String, List<String>> serverTasks) {
+  public void update(Map<String, TaskInfo> serverTasks) {
     this.tasks =
         serverTasks == null
             ? Map.of()
@@ -61,6 +69,13 @@ public class TaskCatalog {
   }
 
   public List<String> rois(String task) {
-    return tasks.getOrDefault(task, List.of());
+    TaskInfo info = tasks.get(task);
+    return info == null ? List.of() : info.rois();
+  }
+
+  /** Falls back to the allowlist for a task the server did not describe. */
+  public boolean supportsFast(String task) {
+    TaskInfo info = tasks.get(task);
+    return info == null ? BUILT_IN_FAST_TASKS.contains(task) : info.fast();
   }
 }

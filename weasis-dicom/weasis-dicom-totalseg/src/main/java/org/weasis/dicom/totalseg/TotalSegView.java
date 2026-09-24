@@ -73,6 +73,10 @@ public class TotalSegView extends ExportDicomView {
   private final TaskCatalog catalog = new TaskCatalog();
   private final CheckTreeModel treeModel;
   private List<String> checkedRois = List.of();
+  private JPanel fastPanel;
+
+  // Kept aside so that moving through tasks without a fast mode does not clear the choice.
+  private boolean fastRequested;
 
   public TotalSegView(DicomModel dicomModel, CheckTreeModel treeModel) {
     super(Messages.getString("TotalSegView.title"), 15, dicomModel, treeModel);
@@ -93,9 +97,15 @@ public class TotalSegView extends ExportDicomView {
   }
 
   private JPanel buildOptionsPanel() {
+    // setSelected() does not fire it, so only a click updates the stored choice.
+    checkFast.addActionListener(_ -> fastRequested = checkFast.isSelected());
+    // A disabled component gets no mouse event, so its parent carries the tooltip explaining why.
+    // Built before the combo listener, which updates it on the first selection.
+    fastPanel = GuiUtils.getFlowLayoutPanel(0, 0, checkFast);
+
     JLabel labelTask = new JLabel(Messages.getString("task") + StringUtil.COLON);
     GuiUtils.setPreferredWidth(comboTask, 210, 185);
-    comboTask.addActionListener(_ -> updateRoiList());
+    comboTask.addActionListener(_ -> taskChanged());
 
     JLabel labelOutput = new JLabel(Messages.getString("output") + StringUtil.COLON);
     GuiUtils.setPreferredWidth(comboOutput, 200, 160);
@@ -104,7 +114,6 @@ public class TotalSegView extends ExportDicomView {
     GuiUtils.setPreferredWidth(comboSegType, 160, 120);
     comboSegType.setToolTipText(Messages.getString("seg.type.tooltip"));
 
-    checkFast.setToolTipText(Messages.getString("fast.mode.tooltip"));
     buttonRefresh.setToolTipText(Messages.getString("refresh.tooltip"));
     buttonRefresh.addActionListener(_ -> refreshTasksFromServer());
 
@@ -121,7 +130,7 @@ public class TotalSegView extends ExportDicomView {
         GuiUtils.getFlowLayoutPanel(ITEM_SEPARATOR_SMALL, 0, comboTask, buttonRefresh), "growx");
     panel.add(labelOutput, GuiUtils.NEWLINE);
     panel.add(
-        GuiUtils.getFlowLayoutPanel(ITEM_SEPARATOR_SMALL, 0, comboOutput, checkFast), "growx");
+        GuiUtils.getFlowLayoutPanel(ITEM_SEPARATOR_SMALL, 0, comboOutput, fastPanel), "growx");
     panel.add(labelSegType, GuiUtils.NEWLINE);
     panel.add(GuiUtils.getFlowLayoutPanel(ITEM_SEPARATOR_SMALL, 0, comboSegType), "growx");
     panel.add(labelRoi, GuiUtils.NEWLINE);
@@ -135,6 +144,9 @@ public class TotalSegView extends ExportDicomView {
   private void initTaskList() {
     String lastTask = TotalSegFactory.PERSISTENCE.getProperty(LAST_TASK, defaultTaskForSelection());
     checkedRois = readLastRoiSubset();
+    // Read before filling the combo, which applies it to the checkbox.
+    fastRequested =
+        Boolean.parseBoolean(TotalSegFactory.PERSISTENCE.getProperty(LAST_FAST, "false"));
     fillTaskCombo(lastTask);
     comboOutput.setSelectedItem(
         OutputType.fromValue(
@@ -142,8 +154,6 @@ public class TotalSegView extends ExportDicomView {
     comboSegType.setSelectedItem(
         SegType.fromValue(
             TotalSegFactory.PERSISTENCE.getProperty(LAST_SEG_TYPE, SegType.LABELMAP.value())));
-    checkFast.setSelected(
-        Boolean.parseBoolean(TotalSegFactory.PERSISTENCE.getProperty(LAST_FAST, "false")));
     updateSegTypeState();
   }
 
@@ -169,7 +179,23 @@ public class TotalSegView extends ExportDicomView {
     if (comboTask.getSelectedItem() == null && comboTask.getItemCount() > 0) {
       comboTask.setSelectedIndex(0);
     }
+    // Also covers a refresh that kept the selection but changed what the server reports about it.
+    taskChanged();
+  }
+
+  private void taskChanged() {
     updateRoiList();
+    updateFastState();
+  }
+
+  /** Only a few tasks have a lower-resolution model, the others reject or ignore the option. */
+  private void updateFastState() {
+    boolean supported =
+        comboTask.getSelectedItem() instanceof String task && catalog.supportsFast(task);
+    checkFast.setEnabled(supported);
+    checkFast.setSelected(supported && fastRequested);
+    checkFast.setToolTipText(supported ? Messages.getString("fast.mode.tooltip") : null);
+    fastPanel.setToolTipText(supported ? null : Messages.getString("fast.mode.unsupported"));
   }
 
   /** MR series default to the MR variant of the whole-body task, everything else to the CT one. */
@@ -196,10 +222,10 @@ public class TotalSegView extends ExportDicomView {
   private void refreshTasksFromServer() {
     buttonRefresh.setEnabled(false);
     setStatus(Messages.getString("loading.tasks"));
-    new SwingWorker<Map<String, List<String>>, Void>() {
+    new SwingWorker<Map<String, TaskInfo>, Void>() {
 
       @Override
-      protected Map<String, List<String>> doInBackground() throws Exception {
+      protected Map<String, TaskInfo> doInBackground() throws Exception {
         return TotalSegConfig.load().newClient().tasks();
       }
 
@@ -331,7 +357,8 @@ public class TotalSegView extends ExportDicomView {
     if (segType instanceof SegType type) {
       TotalSegFactory.PERSISTENCE.setProperty(LAST_SEG_TYPE, type.value());
     }
-    TotalSegFactory.PERSISTENCE.setProperty(LAST_FAST, Boolean.toString(checkFast.isSelected()));
+    // The choice, not the checkbox, which a task without a fast mode forces to unselected.
+    TotalSegFactory.PERSISTENCE.setProperty(LAST_FAST, Boolean.toString(fastRequested));
     TotalSegFactory.PERSISTENCE.setProperty(
         LAST_ROI_SUBSET, String.join("\\", roiList.getCheckedRois()));
   }

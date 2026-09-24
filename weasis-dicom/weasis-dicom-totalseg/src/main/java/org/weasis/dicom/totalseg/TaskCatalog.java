@@ -32,21 +32,18 @@ public class TaskCatalog {
   private static final Set<String> BUILT_IN_FAST_TASKS =
       Set.of("total", "total_v3", "total_mr", "body", "body_mr"); // NON-NLS
 
+  /** Mirrors the tasks the server offers, which excludes the commercial and the internal ones. */
   // @formatter:off
   private static final List<String> BUILT_IN_TASKS =
       List.of(
-          "total", "total_mr", "total_v3", "total_v1", "total_highres_test", // NON-NLS
-          "body", "body_mr", "lung_vessels", "lung_nodules", "covid", // NON-NLS
+          "total", "total_mr", "total_v3", "total_highres_test", // NON-NLS
+          "body", "body_mr", "lung_vessels", "lung_nodules", // NON-NLS
           "pleural_pericard_effusion", "liver_vessels", "liver_segments", "liver_segments_mr", // NON-NLS
-          "liver_lesions", "liver_lesions_mr", "kidney_cysts", "renal_arteries", // NON-NLS
-          "coronary_arteries", "heartchambers_highres", "ventricle_parts", "aortic_sinuses", // NON-NLS
-          "aorta_annulus", "aortic_dissection", "pulmonary_artery_landmarks", "brain_structures", // NON-NLS
+          "liver_lesions", "liver_lesions_mr", "kidney_cysts", "ventricle_parts", // NON-NLS
           "brain_aneurysm", "cerebral_bleed", "head_glands_cavities", "head_muscles", // NON-NLS
           "headneck_bones_vessels", "headneck_muscles", "craniofacial_structures", "teeth", // NON-NLS
-          "face", "face_mr", "oculomotor_muscles", "vertebrae_mr", "vertebrae_body", // NON-NLS
-          "vertebrae_pp", "vertebrae_pp_refined", "appendicular_bones", "appendicular_bones_mr", // NON-NLS
-          "thigh_shoulder_muscles", "thigh_shoulder_muscles_mr", "abdominal_muscles", // NON-NLS
-          "tissue_types", "tissue_types_mr", "tissue_4_types", "breasts", "trunk_cavities", // NON-NLS
+          "oculomotor_muscles", "vertebrae_mr", "vertebrae_body", "vertebrae_pp", // NON-NLS
+          "vertebrae_pp_refined", "abdominal_muscles", "breasts", "trunk_cavities", // NON-NLS
           "hip_implant"); // NON-NLS
   // @formatter:on
 

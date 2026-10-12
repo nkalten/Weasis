@@ -512,6 +512,66 @@
       "category": "DICOM"
     },
     {
+      "code": "weasis.totalsegmentator.url",
+      "value": null,
+      "description": "Base URL of the TotalSegmentator API (e.g. http://host:9100). No default: when null, the WEASIS_TOTALSEG_URL environment variable is used, otherwise the user must set it in the preferences",
+      "type": "F",
+      "category": "DICOM"
+    },
+    {
+      "code": "weasis.totalsegmentator.aet",
+      "value": "TOTALSEG_SCP",
+      "description": "AE title of the store SCP of the segmentation service",
+      "type": "F",
+      "category": "DICOM"
+    },
+    {
+      "code": "weasis.totalsegmentator.dicom.port",
+      "value": "11112",
+      "description": "DICOM port of the store SCP of the segmentation service, on the API host",
+      "type": "F",
+      "javaType": "INT",
+      "category": "DICOM"
+    },
+    {
+      "code": "weasis.totalsegmentator.header.name",
+      "value": null,
+      "description": "Name of the HTTP authentication header sent to the TotalSegmentator API (e.g. Authorization). Fallback: WEASIS_TOTALSEG_HEADER_NAME",
+      "type": "F",
+      "category": "DICOM"
+    },
+    {
+      "code": "weasis.totalsegmentator.header.value",
+      "value": null,
+      "description": "Value of the HTTP authentication header. Do not store a token here when the configuration is shared: prefer the WEASIS_TOTALSEG_HEADER_VALUE environment variable",
+      "type": "F",
+      "category": "DICOM"
+    },
+    {
+      "code": "weasis.totalsegmentator.poll.interval",
+      "value": "5",
+      "description": "Delay in seconds between two polls of the segmentation job status",
+      "type": "F",
+      "javaType": "INT",
+      "category": "DICOM"
+    },
+    {
+      "code": "weasis.totalsegmentator.max.wait",
+      "value": "60",
+      "description": "Maximum time in minutes to wait for a segmentation job to complete",
+      "type": "F",
+      "javaType": "INT",
+      "category": "DICOM"
+    },
+    {
+      "code": "weasis.totalsegmentator.delete.result",
+      "value": "true",
+      "description": "Delete the segmentation result on the server once it has been retrieved",
+      "type": "F",
+      "javaType": "BOOLEAN",
+      "category": "DICOM"
+    },
+    {
       "code": "weasis.color.wl.apply",
       "value": "true",
       "description": "Allow applying Window/Level on color images",

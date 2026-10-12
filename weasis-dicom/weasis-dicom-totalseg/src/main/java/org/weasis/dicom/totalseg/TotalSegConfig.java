@@ -20,8 +20,10 @@ import org.weasis.core.util.StringUtil;
 import org.weasis.dicom.param.DicomNode;
 
 /**
- * TotalSegmentator settings, read from the system preferences so that a site can preset them in
- * {@code base.json}.
+ * TotalSegmentator settings, resolved from the system preferences and, for the site-specific values
+ * left unset there, from the {@code WEASIS_TOTALSEG_URL}, {@code WEASIS_TOTALSEG_HEADER_NAME} and
+ * {@code WEASIS_TOTALSEG_HEADER_VALUE} environment variables. The server URL and the authentication
+ * header have no built-in default: they must be provided by the deployment.
  */
 public record TotalSegConfig(
     String url,
@@ -42,21 +44,48 @@ public record TotalSegConfig(
   public static final String P_MAX_WAIT = "weasis.totalsegmentator.max.wait";
   public static final String P_DELETE_RESULT = "weasis.totalsegmentator.delete.result";
 
-  public static final String DEFAULT_URL = "http://vmlc-03055.huge.ad.hcuge.ch:9100"; // NON-NLS
   public static final String DEFAULT_AET = "TOTALSEG_SCP"; // NON-NLS
   public static final int DEFAULT_DICOM_PORT = 11112;
   public static final int DEFAULT_POLL_INTERVAL = 5;
   public static final int DEFAULT_MAX_WAIT = 60;
   public static final boolean DEFAULT_DELETE_RESULT = true;
 
+  private static final String ENV_PREFIX = "WEASIS_TOTALSEG_"; // NON-NLS
+  public static final String ENV_URL = ENV_PREFIX + "URL"; // NON-NLS
+  public static final String ENV_HEADER_NAME = ENV_PREFIX + "HEADER_NAME"; // NON-NLS
+  public static final String ENV_HEADER_VALUE = ENV_PREFIX + "HEADER_VALUE"; // NON-NLS
+
+  public static String defaultUrl() {
+    return envString(ENV_URL);
+  }
+
+  public static String defaultHeaderName() {
+    return envString(ENV_HEADER_NAME);
+  }
+
+  public static String defaultHeaderValue() {
+    return envString(ENV_HEADER_VALUE);
+  }
+
+  private static String envString(String name) {
+    String value = System.getenv(name);
+    return StringUtil.hasText(value) ? value.trim() : "";
+  }
+
+  /** An empty preference (e.g. a {@code null} value in {@code base.json}) means "not set". */
+  private static String prefString(WProperties prefs, String key, String def) {
+    String value = prefs.getProperty(key);
+    return StringUtil.hasText(value) ? value.trim() : def;
+  }
+
   public static TotalSegConfig load() {
     WProperties prefs = GuiUtils.getUICore().getSystemPreferences();
     return new TotalSegConfig(
-        prefs.getProperty(P_URL, DEFAULT_URL),
-        prefs.getProperty(P_AET, DEFAULT_AET),
+        prefString(prefs, P_URL, defaultUrl()),
+        prefString(prefs, P_AET, DEFAULT_AET),
         prefs.getIntProperty(P_DICOM_PORT, DEFAULT_DICOM_PORT),
-        prefs.getProperty(P_HEADER_NAME, ""),
-        prefs.getProperty(P_HEADER_VALUE, ""),
+        prefString(prefs, P_HEADER_NAME, defaultHeaderName()),
+        prefString(prefs, P_HEADER_VALUE, defaultHeaderValue()),
         prefs.getIntProperty(P_POLL_INTERVAL, DEFAULT_POLL_INTERVAL),
         prefs.getIntProperty(P_MAX_WAIT, DEFAULT_MAX_WAIT),
         prefs.getBooleanProperty(P_DELETE_RESULT, DEFAULT_DELETE_RESULT));

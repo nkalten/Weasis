@@ -48,3 +48,4 @@ weasis_*.snap
 #comlile
 build-dist
 
+.env*

@@ -192,12 +192,12 @@ public class TotalSegPrefView extends AbstractItemDialogPage {
 
   @Override
   public void resetToDefaultValues() {
-    textUrl.setText(TotalSegConfig.DEFAULT_URL);
+    textUrl.setText(TotalSegConfig.defaultUrl());
     textUrl.setCaretPosition(0);
     textAet.setText(TotalSegConfig.DEFAULT_AET);
     textDicomPort.setValue(TotalSegConfig.DEFAULT_DICOM_PORT);
-    textHeaderName.setText("");
-    textHeaderValue.setText("");
+    textHeaderName.setText(TotalSegConfig.defaultHeaderName());
+    textHeaderValue.setText(TotalSegConfig.defaultHeaderValue());
     spinnerPoll.setValue(TotalSegConfig.DEFAULT_POLL_INTERVAL);
     spinnerMaxWait.setValue(TotalSegConfig.DEFAULT_MAX_WAIT);
     checkDeleteResult.setSelected(TotalSegConfig.DEFAULT_DELETE_RESULT);
